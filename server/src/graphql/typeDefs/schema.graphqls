@@ -1,0 +1,65 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Query {
+  getPosts: [Post!]!
+  getPostById(id: ID!): Post
+}
+
+type Mutation {
+  #authentication
+  login(input: UserLoginInput!): String!
+  register(input: UserRegisterInput!): String!
+
+  createPost(content: String!): Post!
+  deletePost(id: ID!): Boolean
+
+  createComment(postId: ID!, content: String!): Comment!
+  deleteComment(postId: ID!, commentId: ID!): Boolean
+
+  likePost(postId: ID!): Like!
+}
+
+type Post {
+  id: ID!
+  content: String!
+  author: User!
+  comments: [Comment!]!
+  likes: [Like!]!
+  lastComment: Comment
+  isViewerAuthor: Boolean!
+  createdAt: Float!
+}
+
+type User {
+  id: ID!
+  username: String!
+  email: String!
+}
+
+type Comment {
+  id: ID!
+  author: User!
+  isViewerAuthor: Boolean!
+  content: String!
+  createdAt: Float!
+}
+
+type Like {
+  id: ID!
+  author: User!
+  createdAt: Float!
+}
+
+input UserLoginInput {
+  email: String!
+  password: String!
+}
+
+input UserRegisterInput {
+  username: String!
+  email: String!
+  password: String!
+}
