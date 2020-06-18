@@ -19,7 +19,14 @@ type Mutation {
   createComment(postId: ID!, content: String!): Comment!
   deleteComment(postId: ID!, commentId: ID!): Boolean
 
-  likePost(postId: ID!): Like!
+  likePost(postId: ID!): Boolean!
+  dislikePost(postId: ID!): Boolean!
+}
+
+type User {
+  id: ID!
+  username: String!
+  email: String!
 }
 
 type Post {
@@ -27,16 +34,12 @@ type Post {
   content: String!
   author: User!
   comments: [Comment!]!
-  likes: [Like!]!
+  commentsCount: Int!
   lastComment: Comment
+  likes: Likes!
+  hasViewerLikesPost: Boolean!
   isViewerAuthor: Boolean!
   createdAt: Float!
-}
-
-type User {
-  id: ID!
-  username: String!
-  email: String!
 }
 
 type Comment {
@@ -47,10 +50,9 @@ type Comment {
   createdAt: Float!
 }
 
-type Like {
-  id: ID!
-  author: User!
-  createdAt: Float!
+type Likes {
+  totalCount: Int!
+  likedBy: [User!]!
 }
 
 input UserLoginInput {

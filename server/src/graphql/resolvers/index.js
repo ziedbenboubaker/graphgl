@@ -87,40 +87,70 @@ module.exports = {
         throw new ApolloError("INVALID_DATA");
       }
       return new CommentModel({ postId, content, userId: user._id }).save();
-    }
-  },
-  deleteComment: (
-    _,
-    { postId, commentId },
-    { user, models: { CommentModel } }
-  ) => {
-    if (!user) {
-      throw new ApolloError("UNAUTHORIZED");
-    }
-    return CommentModel.findById(commentId).then(comment => {
-      if (!comment) {
-        throw new ApolloError("DATA_NOT_FOUND");
-      }
-      if (!comment.userId.equals(user._id)) {
+    },
+    deleteComment: (
+      _,
+      { postId, commentId },
+      { user, models: { CommentModel } }
+    ) => {
+      if (!user) {
         throw new ApolloError("UNAUTHORIZED");
       }
-      return comment.remove().then(() => true);
-    });
-  },
-  likePost: (_, { postId }, { user, models: { LikeModel } }) => {
-    if (!user) {
-      throw new ApolloError("UNAUTHORIZED");
-    }
-    return LikeModel.findById(postId).then(like => {
-      if (!like) {
-        throw new ApolloError("DATA_NOT_FOUND");
-      }
-      if (!like.userId.equals(user._id)) {
+      return CommentModel.findById(commentId).then(comment => {
+        if (!comment) {
+          throw new ApolloError("DATA_NOT_FOUND");
+        }
+        if (!comment.userId.equals(user._id)) {
+          throw new ApolloError("UNAUTHORIZED");
+        }
+        return comment.remove().then(() => true);
+      });
+    },
+    likePost: (_, { postId }, { user, models: { PostModel } }) => {
+      if (!user) {
         throw new ApolloError("UNAUTHORIZED");
       }
-      return like.filter(like.userId.equals(user._id));
-    });
+      return PostModel.findById(postId).then(post => {
+        if (!post) {
+          throw new ApolloError("DATA_NOT_FOUND");
+        }
+
+        const likes = post.likes || [];
+
+        if (likes.includes(user._id)) {
+          return true;
+        }
+
+        likes.push(user._id);
+        post.likes = likes;
+
+        return post.save().then(() => true);
+      });
+    },
+    dislikePost: (_, { postId }, { user, models: { PostModel } }) => {
+      if (!user) {
+        throw new ApolloError("UNAUTHORIZED");
+      }
+      return PostModel.findById(postId).then(post => {
+        if (!post) {
+          throw new ApolloError("DATA_NOT_FOUND");
+        }
+
+        const likes = post.likes || [];
+        const index = likes.indexOf(user._id);
+
+        if (index === -1) {
+          return true;
+        }
+
+        likes.splice(index, 1);
+        post.likes = likes;
+
+        return post.save().then(() => true);
+      });
+    }
   },
+
   Post: {
     author: (parent, args, { models: { UserModel } }) =>
       UserModel.findById(parent.userId),
@@ -134,7 +164,17 @@ module.exports = {
       return CommentModel.findOne({ postId: parent._id }).sort({
         createdAt: -1
       });
+    },
+    commentsCount: (parent, _, { models: { CommentModel } }) =>
+      CommentModel.find({ postId: parent._id }).countDocuments(),
+    hasViewerLikesPost: (parent, _, { user }) => {
+      return (parent.likes || []).includes(user._id);
     }
+  },
+  Likes: {
+    totalCount: parent => (parent || []).length,
+    likedBy: (parent, args, { models: { UserModel } }) =>
+      UserModel.find({ _id: { $in: parent || [] } })
   },
   Comment: {
     author: (parent, args, { models: { UserModel } }) =>
